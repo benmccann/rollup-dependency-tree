@@ -1,0 +1,22 @@
+{
+  "name": "rollup-dependency-tree",
+  "version": "0.0.1",
+  "description": "Builds a dependency tree from a Rollup compilation result",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha -r ts-node/register test/**/*.ts"
+  },
+  "author": "Ben McCann",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "chai": "^4.2.0",
+    "mocha": "^8.0.1",
+    "rollup": "^1.32.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5"
+  }
+}
