@@ -1,7 +1,16 @@
 import type { RenderedChunk } from 'rollup';
 
 export interface DependencyTreeOptions {
-  includeRoot: boolean;
+  /**
+   * Whether to include the chunk itself. Defaults to true.
+   */
+  includeRoot?: boolean;
+
+  /**
+   * Function to decide whether to include a dynamic import.
+   * If not provided no dynamic imports are included.
+   */
+  dynamicImports?: (chunk: RenderedChunk) => boolean;
 }
 
 /**
@@ -38,7 +47,15 @@ function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: Rende
         dependenciesForTrees(importedChunks, allChunks).forEach(fileName => result.add(fileName));
       }
     });
-    if (opts && opts.includeRoot) {
+    if (opts && opts.dynamicImports) {
+      chunk.dynamicImports.forEach(fileName => {
+        const c = allChunks.find(chunk => chunk.fileName === fileName);
+        if (opts.dynamicImports(c)) {
+          result.add(c.fileName);
+        }
+      });
+    }
+    if (!opts || opts.includeRoot !== false) {
       result.add(chunk.fileName);
     }
   });
