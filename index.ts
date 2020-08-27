@@ -1,4 +1,4 @@
-import type { OutputChunk } from 'rollup';
+import type { RenderedChunk } from 'rollup';
 
 export interface DependencyTreeOptions {
   includeRoot: boolean;
@@ -10,7 +10,7 @@ export interface DependencyTreeOptions {
  * @param [opts] - the options to use
  * @return a map from chunk.facadeModuleId to dependencies
  */
-export function dependenciesForForest(chunks: OutputChunk[], opts?: DependencyTreeOptions): Record<string,string[]> {
+export function dependenciesForForest(chunks: RenderedChunk[], opts?: DependencyTreeOptions): Record<string,string[]> {
   const result: Record<string,string[]> = {};
   chunks.filter(chunk => chunk.facadeModuleId)
       .forEach(chunk => { result[chunk.facadeModuleId] = Array.from(dependenciesForTree(chunk, chunks, opts)); });
@@ -24,11 +24,11 @@ export function dependenciesForForest(chunks: OutputChunk[], opts?: DependencyTr
  * @param [opts] - the options to use
  * @return the transitive dependencies for the given chunk
  */
-export function dependenciesForTree(chunk: OutputChunk, allChunks: OutputChunk[], opts?: DependencyTreeOptions): Set<string> {
+export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<string> {
   return dependenciesForTrees([chunk], allChunks, opts);
 }
 
-function dependenciesForTrees(chunksToResolve: OutputChunk[], allChunks: OutputChunk[], opts?: DependencyTreeOptions): Set<string> {
+function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<string> {
   const result = new Set<string>();
   chunksToResolve.forEach(chunk => {
     chunk.imports.forEach(fileName => {
