@@ -1,30 +1,17 @@
 import type { RenderedChunk } from 'rollup';
 
-export interface DependencyTreeOptions {
-  /**
-   * Whether to include the chunk itself. Defaults to true.
-   */
-  includeRoot?: boolean;
-
-  /**
-   * Function to decide whether to include a dynamic import.
-   * If not provided no dynamic imports are included.
-   */
-  dynamicImports?: (chunk: RenderedChunk) => boolean;
+export interface DependencyTreeContext {
+  chunk: RenderedChunk;
+  dynamicImport: boolean;
 }
 
-/**
- * Returns the transitive dependencies for all chunks
- * @param chunks - all chunks. dependencies will be calculated for each
- * @param [opts] - the options to use
- * @return a map from chunk.facadeModuleId to dependencies
- */
-export function dependenciesForForest(chunks: RenderedChunk[], opts?: DependencyTreeOptions): Record<string,RenderedChunk[]> {
-  const result: Record<string,RenderedChunk[]> = {};
-  chunks.filter(chunk => chunk.facadeModuleId)
-      .forEach(chunk => { result[chunk.facadeModuleId] = Array.from(dependenciesForTree(chunk, chunks, opts)); });
-  return result;
-};
+export interface DependencyTreeOptions {
+
+  filter?: (context: DependencyTreeContext) => boolean;
+
+  walk?: (context: DependencyTreeContext) => boolean;
+
+}
 
 /**
  * Returns the transitive dependencies for a certain chunk
@@ -34,30 +21,27 @@ export function dependenciesForForest(chunks: RenderedChunk[], opts?: Dependency
  * @return the transitive dependencies for the given chunk
  */
 export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
-  return dependenciesForTrees([chunk], allChunks, opts);
+  const result = new Set<RenderedChunk>();
+  dependenciesForTrees(result, chunk, allChunks, false, opts);
+  return result;
 }
 
-function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
-  const result = new Set<RenderedChunk>();
-  chunksToResolve.forEach(chunk => {
-    chunk.imports.forEach(fileName => {
-      let importedChunk = allChunks.find(chunk => chunk.fileName === fileName);
-      if (importedChunk && !result.has(importedChunk)) { // avoid cycles
-        result.add(importedChunk);
-        dependenciesForTree(importedChunk, allChunks, opts).forEach(c => result.add(c));
-      }
-    });
-    if (opts && opts.dynamicImports) {
-      chunk.dynamicImports.forEach(fileName => {
-        const c = allChunks.find(chunk => chunk.fileName === fileName);
-        if (c && opts.dynamicImports(c)) {
-          result.add(c);
-        }
-      });
-    }
-    if (!opts || opts.includeRoot !== false) {
-      result.add(chunk);
+function addChunk(chunk, result, opts, dynamicImport) {
+  if (!opts || !opts.filter || opts.filter({chunk, dynamicImport})) {
+    result.add(chunk);
+  }
+}
+
+function dependenciesForTrees(result: Set<RenderedChunk>, chunkToResolve: RenderedChunk, allChunks: RenderedChunk[], dynamicImport: boolean, opts?: DependencyTreeOptions) {
+  if (opts && opts.walk && !opts.walk({chunk: chunkToResolve, dynamicImport})) {
+    return;
+  }
+  addChunk(chunkToResolve, result, dynamicImport, false);
+  chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
+    let chunk = allChunks.find(c => c.fileName === fileName);
+    if (chunk && !result.has(chunk)) { // avoid cycles
+      const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
+      dependenciesForTrees(result, chunk, allChunks, dynamicImport, opts);
     }
   });
-  return result;
 }
