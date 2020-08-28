@@ -26,7 +26,7 @@ export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChu
   return result;
 }
 
-function addChunk(chunk, result, opts, dynamicImport) {
+function addChunk(chunk: RenderedChunk, result: Set<RenderedChunk>, opts: DependencyTreeOptions, dynamicImport: boolean) {
   if (!opts || !opts.filter || opts.filter({chunk, dynamicImport})) {
     result.add(chunk);
   }
@@ -36,7 +36,7 @@ function dependenciesForTrees(result: Set<RenderedChunk>, chunkToResolve: Render
   if (opts && opts.walk && !opts.walk({chunk: chunkToResolve, dynamicImport})) {
     return;
   }
-  addChunk(chunkToResolve, result, dynamicImport, false);
+  addChunk(chunkToResolve, result, opts, dynamicImport);
   chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
     let chunk = allChunks.find(c => c.fileName === fileName);
     if (chunk && !result.has(chunk)) { // avoid cycles
