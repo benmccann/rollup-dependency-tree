@@ -19,8 +19,8 @@ export interface DependencyTreeOptions {
  * @param [opts] - the options to use
  * @return a map from chunk.facadeModuleId to dependencies
  */
-export function dependenciesForForest(chunks: RenderedChunk[], opts?: DependencyTreeOptions): Record<string,string[]> {
-  const result: Record<string,string[]> = {};
+export function dependenciesForForest(chunks: RenderedChunk[], opts?: DependencyTreeOptions): Record<string,RenderedChunk[]> {
+  const result: Record<string,RenderedChunk[]> = {};
   chunks.filter(chunk => chunk.facadeModuleId)
       .forEach(chunk => { result[chunk.facadeModuleId] = Array.from(dependenciesForTree(chunk, chunks, opts)); });
   return result;
@@ -33,30 +33,30 @@ export function dependenciesForForest(chunks: RenderedChunk[], opts?: Dependency
  * @param [opts] - the options to use
  * @return the transitive dependencies for the given chunk
  */
-export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<string> {
+export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
   return dependenciesForTrees([chunk], allChunks, opts);
 }
 
-function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<string> {
-  const result = new Set<string>();
+function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
+  const result = new Set<RenderedChunk>();
   chunksToResolve.forEach(chunk => {
     chunk.imports.forEach(fileName => {
-      if (!result.has(fileName)) { // avoid cycles
-        result.add(fileName);
-        let importedChunks = allChunks.filter(chunk => chunk.fileName === fileName);
-        dependenciesForTrees(importedChunks, allChunks).forEach(fileName => result.add(fileName));
+      let importedChunk = allChunks.find(chunk => chunk.fileName === fileName);
+      if (!result.has(importedChunk)) { // avoid cycles
+        result.add(importedChunk);
+        dependenciesForTree(importedChunk, allChunks, opts).forEach(c => result.add(c));
       }
     });
     if (opts && opts.dynamicImports) {
       chunk.dynamicImports.forEach(fileName => {
         const c = allChunks.find(chunk => chunk.fileName === fileName);
         if (opts.dynamicImports(c)) {
-          result.add(c.fileName);
+          result.add(c);
         }
       });
     }
     if (!opts || opts.includeRoot !== false) {
-      result.add(chunk.fileName);
+      result.add(chunk);
     }
   });
   return result;

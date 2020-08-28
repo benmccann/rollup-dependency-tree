@@ -1,6 +1,6 @@
 {
   "name": "rollup-dependency-tree",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Builds a dependency tree from a Rollup compilation result",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
