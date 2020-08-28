@@ -22,7 +22,8 @@ export interface DependencyTreeOptions {
  */
 export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
   const result = new Set<RenderedChunk>();
-  dependenciesForTrees(result, chunk, allChunks, false, opts);
+  const visited = new Set<RenderedChunk>();
+  dependenciesForTrees(result, visited, chunk, allChunks, false, opts);
   return result;
 }
 
@@ -32,16 +33,24 @@ function addChunk(chunk: RenderedChunk, result: Set<RenderedChunk>, opts: Depend
   }
 }
 
-function dependenciesForTrees(result: Set<RenderedChunk>, chunkToResolve: RenderedChunk, allChunks: RenderedChunk[], dynamicImport: boolean, opts?: DependencyTreeOptions) {
+function dependenciesForTrees(
+    result: Set<RenderedChunk>,
+    visited: Set<RenderedChunk>,
+    chunkToResolve: RenderedChunk,
+    allChunks: RenderedChunk[], 
+    dynamicImport: boolean,
+    opts?: DependencyTreeOptions) {
+
+  visited.add(chunkToResolve);
   if (opts && opts.walk && !opts.walk({chunk: chunkToResolve, dynamicImport})) {
     return;
   }
   addChunk(chunkToResolve, result, opts, dynamicImport);
   chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
     let chunk = allChunks.find(c => c.fileName === fileName);
-    if (chunk && !result.has(chunk)) { // avoid cycles
+    if (chunk && !visited.has(chunk)) { // avoid cycles
       const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
-      dependenciesForTrees(result, chunk, allChunks, dynamicImport, opts);
+      dependenciesForTrees(result, visited, chunk, allChunks, dynamicImport, opts);
     }
   });
 }
