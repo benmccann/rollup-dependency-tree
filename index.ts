@@ -42,7 +42,7 @@ function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: Rende
   chunksToResolve.forEach(chunk => {
     chunk.imports.forEach(fileName => {
       let importedChunk = allChunks.find(chunk => chunk.fileName === fileName);
-      if (!result.has(importedChunk)) { // avoid cycles
+      if (importedChunk && !result.has(importedChunk)) { // avoid cycles
         result.add(importedChunk);
         dependenciesForTree(importedChunk, allChunks, opts).forEach(c => result.add(c));
       }
@@ -50,7 +50,7 @@ function dependenciesForTrees(chunksToResolve: RenderedChunk[], allChunks: Rende
     if (opts && opts.dynamicImports) {
       chunk.dynamicImports.forEach(fileName => {
         const c = allChunks.find(chunk => chunk.fileName === fileName);
-        if (opts.dynamicImports(c)) {
+        if (c && opts.dynamicImports(c)) {
           result.add(c);
         }
       });
