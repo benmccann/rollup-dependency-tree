@@ -41,10 +41,10 @@ function dependenciesForTrees(
     dynamicImport: boolean,
     opts?: DependencyTreeOptions) {
 
-  visited.add(chunkToResolve);
   if (opts && opts.walk && !opts.walk({chunk: chunkToResolve, dynamicImport})) {
     return;
   }
+  visited.add(chunkToResolve);
   addChunk(chunkToResolve, result, opts, dynamicImport);
   chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
     let chunk = allChunks.find(c => c.fileName === fileName);
