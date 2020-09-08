@@ -52,9 +52,16 @@ function dependenciesForTrees(
   addChunk(ctx, result, opts);
   chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
     let chunk = allChunks.find(c => c.fileName === fileName);
-    const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
-    if (chunk && !visited.has(visitKey({chunk, dynamicImport}))) { // avoid cycles
-      dependenciesForTrees(result, visited, chunk, allChunks, dynamicImport, opts);
+    if (!chunk) {
+      return;
     }
+
+    // avoid cycles
+    const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
+    if (visited.has(visitKey({chunk, dynamicImport}))) {
+      return;
+    }
+
+    dependenciesForTrees(result, visited, chunk, allChunks, dynamicImport, opts);
   });
 }
