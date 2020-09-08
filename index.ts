@@ -22,34 +22,38 @@ export interface DependencyTreeOptions {
  */
 export function dependenciesForTree(chunk: RenderedChunk, allChunks: RenderedChunk[], opts?: DependencyTreeOptions): Set<RenderedChunk> {
   const result = new Set<RenderedChunk>();
-  const visited = new Set<RenderedChunk>();
+  const visited = new Set<string>();
   dependenciesForTrees(result, visited, chunk, allChunks, false, opts);
   return result;
 }
 
-function addChunk(chunk: RenderedChunk, result: Set<RenderedChunk>, opts: DependencyTreeOptions, dynamicImport: boolean) {
-  if (!opts || !opts.filter || opts.filter({chunk, dynamicImport})) {
-    result.add(chunk);
+function addChunk(ctx: DependencyTreeContext, result: Set<RenderedChunk>, opts: DependencyTreeOptions) {
+  if (!opts || !opts.filter || opts.filter(ctx)) {
+    result.add(ctx.chunk);
   }
 }
 
+const visitKey = (ctx: DependencyTreeContext) => ctx.chunk.fileName + ':' + ctx.dynamicImport;
+
 function dependenciesForTrees(
     result: Set<RenderedChunk>,
-    visited: Set<RenderedChunk>,
+    visited: Set<string>,
     chunkToResolve: RenderedChunk,
     allChunks: RenderedChunk[], 
     dynamicImport: boolean,
     opts?: DependencyTreeOptions) {
 
-  if (opts && opts.walk && !opts.walk({chunk: chunkToResolve, dynamicImport})) {
+  const ctx = {chunk: chunkToResolve, dynamicImport};
+  if (opts && opts.walk && !opts.walk(ctx)) {
     return;
   }
-  visited.add(chunkToResolve);
-  addChunk(chunkToResolve, result, opts, dynamicImport);
+  // need to hand the case where we come across a chunk as a dynamic import and static import
+  visited.add(visitKey(ctx));
+  addChunk(ctx, result, opts);
   chunkToResolve.imports.concat(chunkToResolve.dynamicImports).forEach(fileName => {
     let chunk = allChunks.find(c => c.fileName === fileName);
-    if (chunk && !visited.has(chunk)) { // avoid cycles
-      const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
+    const dynamicImport = chunkToResolve.imports.indexOf(chunk.fileName) < 0;
+    if (chunk && !visited.has(visitKey({chunk, dynamicImport}))) { // avoid cycles
       dependenciesForTrees(result, visited, chunk, allChunks, dynamicImport, opts);
     }
   });
